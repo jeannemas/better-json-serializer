@@ -2,13 +2,12 @@
   "name": "better-json-serializer",
   "version": "1.0.0",
   "description": "A tool that enables to use non-standard types in JSON (such as Sets, Maps, etc)",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "prestart": "tsc",
-    "start": "node ./dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "prepublish": "npm run build",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
