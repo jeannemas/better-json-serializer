@@ -1,6 +1,8 @@
 import { IPlugin } from './types/Plugin';
 import DefaultConfiguration from './DefaultConfiguration';
 import DefaultPluginsStore from './DefaultPluginsStore';
+import IConfiguration from './types/Configuration';
+import { ISerializedObject } from './types/SerializedObject';
 
 /**
  * A tool that enables to use non-standard types in JSON.
@@ -11,53 +13,77 @@ import DefaultPluginsStore from './DefaultPluginsStore';
  */
 class BetterJSONSerializer {
   /** The config used by the serializer */
-  private config = DefaultConfiguration();
+  private conf = DefaultConfiguration();
 
   /** The list of plugins used as middlewares by the serializer */
   private plugins = DefaultPluginsStore();
 
   /**
-   * Configure the serializer.
+   * Update the configuration.
    *
-   * @param configurationProperty - The configuration property to configure.
-   * @param value - The value to assign to the configuration property.
-   *
-   * @returns Returns itself to be able to chain configuration changes.
+   * @param configuration - An object specifying the properties as keys, and the values.
    */
-  public configure(
-    configurationProperty: string,
-    value: unknown = undefined,
-  ): BetterJSONSerializer | unknown {
-    // Ensure that the configurationProperty is a string
-    if (typeof configurationProperty !== 'string') {
-      throw new TypeError('The configuration property must be a string.');
+  public setConfig(configuration: Record<string, unknown>): void;
+  /**
+   * Update the configuration.
+   *
+   * @param configurationProperty - The configuration property to update.
+   * @param value - The new value of the configuration property.
+   */
+  public setConfig(configurationProperty: string, value: unknown): void;
+  public setConfig(
+    configurationOrProperty: Record<string, unknown> | string,
+    value?: unknown,
+  ): void {
+    // If the configuration is an object
+    if (typeof configurationOrProperty === 'object') {
+      // Call the setConfig foreach key/value pair
+      Object.entries(configurationOrProperty).forEach(([key, val]) => this.setConfig(key, val));
+
+      return;
     }
+
+    /** The configuration property */
+    const key = configurationOrProperty as string;
 
     // Ensure that the configurationProperty exist in the configuration object
-    if (!(configurationProperty in this.config)) {
-      throw new ReferenceError(`Configuration property '${configurationProperty}' does not exist.`);
-    }
-
-    // The current value of the configuration property
-    const currentValue = this.config[configurationProperty];
-
-    if (typeof value === 'undefined') {
-      // Return the current configuration property value
-      return currentValue;
+    if (!(key in this.conf)) {
+      throw new ReferenceError(`Configuration property '${key}' does not exist.`);
     }
 
     // Ensure that the value of the configurationProperty is valid
-    if (typeof value !== typeof currentValue) {
+    if (typeof value !== typeof this.conf[key]) {
       throw new TypeError(
-        `Invalid type for configuration property '${configurationProperty}', expected '${typeof currentValue}'.`,
+        `Invalid type for configuration property '${key}', expected '${typeof this.conf[key]}'.`,
       );
     }
 
     // Update the configuration
-    this.config[configurationProperty] = value;
+    this.conf[key] = value;
+  }
 
-    // Return the serializer
-    return this;
+  /**
+   * Retrieve the configuration properties.
+   *
+   * @param configurationProperty - The name of the configuration property.
+   *
+   * @returns Return the value of the configuration identified by `configurationProperty`,
+   *   or the whole configuration if the property is `undefined`.
+   */
+  public getConfig(configurationProperty?: string): IConfiguration | unknown {
+    // Check is property is 'undefined'
+    if (configurationProperty === undefined) {
+      // Return the whole configuration
+      return { ...this.conf };
+    }
+
+    // Ensure that the configurationProperty exist in the configuration object
+    if (!(configurationProperty in this.conf)) {
+      throw new ReferenceError(`Configuration property '${configurationProperty}' does not exist.`);
+    }
+
+    // Return the configuration property value
+    return this.conf[configurationProperty];
   }
 
   /**
@@ -79,7 +105,7 @@ class BetterJSONSerializer {
       );
     }
 
-    if (this.plugins.user.has(plugin.constructorName) && !this.config.allowPluginsOverwrite) {
+    if (this.plugins.user.has(plugin.constructorName) && !this.conf.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
       throw new Error(
         `Unable to add plugin for '${plugin.constructorName}', a plugin using this constructor name already exist and plugins override is disabled.`,
@@ -98,20 +124,12 @@ class BetterJSONSerializer {
    *
    * @returns Returns the matching plugin if it exist, or `undefined` if none has been found.
    */
-  public plugin(
+  public getPlugin(
     constructorName: string,
-    allowUseOfDefaultPlugins: boolean = this.config.allowUseOfDefaultPlugins as boolean,
+    allowUseOfDefaultPlugins: boolean = this.conf.allowUseOfDefaultPlugins as boolean,
   ): IPlugin | undefined {
-    if (typeof constructorName !== 'string') {
-      throw new TypeError('The constructor name must be a string.');
-    }
-
-    if (typeof allowUseOfDefaultPlugins !== 'boolean') {
-      throw new TypeError(`Invalid typeof 'allowUseOfDefaultPlugins', expected 'boolean'.`);
-    }
-
     /** The plugin that macthes the constructor name */
-    let matchingPlugin: IPlugin = this.plugins.user.get(constructorName);
+    let matchingPlugin = this.plugins.user.get(constructorName);
 
     // If no plugins has been found and default plugins can be used
     if (!matchingPlugin && allowUseOfDefaultPlugins) {
@@ -133,13 +151,8 @@ class BetterJSONSerializer {
    */
   public stringify<C = unknown>(
     source: C,
-    space: number = this.config.defaultIndentation as number,
+    space: number = this.conf.defaultIndentation as number,
   ): string {
-    // Ensure the space indentation is a positive number
-    if (typeof space !== 'number' || space < 0) {
-      throw new TypeError('Invalid typeof space, a positive number is required.');
-    }
-
     /** The serialized JSON object */
     let json: string;
 
@@ -148,11 +161,22 @@ class BetterJSONSerializer {
         source,
         (key, value) => {
           /** The name of the constructor of `value` */
-          const constructorName: string =
-            value === undefined || value === null ? typeof value : value.constructor.name;
+          let constructorName: string;
+          // Test for special cases
+          if (value === undefined) {
+            constructorName = 'undefined';
+          } else if (value === null) {
+            constructorName = 'null';
+          } else if (value === Infinity) {
+            constructorName = 'infinity';
+          } else if (Number.isNaN(value)) {
+            constructorName = 'nan';
+          } else {
+            constructorName = value.constructor.name;
+          }
 
           /** The plugin that should be used */
-          const matchingPlugin = this.plugin(constructorName);
+          const matchingPlugin = this.getPlugin(constructorName);
 
           // If no plugins matching this constructor has been found, return the raw value
           if (!matchingPlugin) {
@@ -166,21 +190,24 @@ class BetterJSONSerializer {
             // Serialize the object using the plugin
             serializedValue = matchingPlugin.serialize(key, value);
           } catch (error) {
-            throw new EvalError((error as Error).message);
+            throw new EvalError(
+              `Error while serializing type '${constructorName}'.\n\n${error.message}`,
+            );
           }
 
           // Return the formated serialized object
           return {
-            [this.config.serializedObjectIdentifier as string]: {
-              [`${this.config.serializedObjectIdentifier}.type`]: constructorName,
-              [`${this.config.serializedObjectIdentifier}.value`]: serializedValue,
-            },
+            [this.conf.serializedObjectIdentifier]: {
+              version: 1,
+              type: constructorName,
+              value: serializedValue,
+            } as ISerializedObject,
           };
         },
         space,
       );
     } catch (error) {
-      throw new EvalError((error as Error).message);
+      throw new EvalError(`Error while stringifying object.\n\n${error.message}`);
     }
 
     return json;
@@ -195,11 +222,6 @@ class BetterJSONSerializer {
    * @returns Returns the deserialized object.
    */
   public parse<O = unknown>(text: string): O {
-    // Ensure the JSON string is in fact, a string
-    if (typeof text !== 'string') {
-      throw new TypeError('The JSON text must be a string.');
-    }
-
     /** The deserialized object */
     let object: unknown;
 
@@ -209,22 +231,34 @@ class BetterJSONSerializer {
         if (
           typeof value !== 'object' ||
           value === null ||
-          !((this.config.serializedObjectIdentifier as string) in value) ||
+          !((this.conf.serializedObjectIdentifier as string) in value) ||
           Object.keys(value).length > 1
         ) {
           return value;
         }
 
-        const serializedObject = value[this.config.serializedObjectIdentifier as string];
-        const constructorName = serializedObject[`${this.config.serializedObjectIdentifier}.type`];
-        const serializedValue = serializedObject[`${this.config.serializedObjectIdentifier}.value`];
+        const { version, type: constructorName, value: serializedValue } = value[
+          this.conf.serializedObjectIdentifier
+        ] as ISerializedObject;
 
         /** The plugin that should be used */
-        const matchingPlugin = this.plugin(constructorName);
+        const matchingPlugin = this.getPlugin(constructorName);
 
         // If no plugins matching this constructor has been found, return the raw value
         if (!matchingPlugin) {
           return serializedValue;
+        }
+
+        switch (version) {
+          case 1: {
+            // Standard version, nothing to report
+
+            break;
+          }
+
+          default: {
+            throw new Error(`Unsupported serialization version '${version}'.`);
+          }
         }
 
         /** The deserialized value */
@@ -233,14 +267,16 @@ class BetterJSONSerializer {
         try {
           deserializedValue = matchingPlugin.deserialize(key, serializedValue);
         } catch (error) {
-          throw new EvalError((error as Error).message);
+          throw new EvalError(
+            `Error while deserializing type '${constructorName}'.\n\n${error.message}`,
+          );
         }
 
         // Return the formated deserialized object
         return deserializedValue;
       });
     } catch (error) {
-      throw new EvalError((error as Error).message);
+      throw new EvalError(`Error while parsing object.\n\n${error.message}`);
     }
 
     return object as O;
