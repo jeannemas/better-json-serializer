@@ -11,10 +11,10 @@ import DefaultPluginsStore from './DefaultPluginsStore';
  */
 class BetterJSONSerializer {
   /** The config used by the serializer */
-  private static configuration = DefaultConfiguration();
+  private config = DefaultConfiguration();
 
   /** The list of plugins used as middlewares by the serializer */
-  private static plugins = DefaultPluginsStore();
+  private plugins = DefaultPluginsStore();
 
   /**
    * Configure the serializer.
@@ -24,22 +24,22 @@ class BetterJSONSerializer {
    *
    * @returns Returns itself to be able to chain configuration changes.
    */
-  public static configure(
+  public configure(
     configurationProperty: string,
     value: unknown = undefined,
-  ): typeof BetterJSONSerializer | unknown {
+  ): BetterJSONSerializer | unknown {
     // Ensure that the configurationProperty is a string
     if (typeof configurationProperty !== 'string') {
       throw new TypeError('The configuration property must be a string.');
     }
 
     // Ensure that the configurationProperty exist in the configuration object
-    if (!(configurationProperty in this.configuration)) {
+    if (!(configurationProperty in this.config)) {
       throw new ReferenceError(`Configuration property '${configurationProperty}' does not exist.`);
     }
 
     // The current value of the configuration property
-    const currentValue = this.configuration[configurationProperty];
+    const currentValue = this.config[configurationProperty];
 
     if (typeof value === 'undefined') {
       // Return the current configuration property value
@@ -54,7 +54,7 @@ class BetterJSONSerializer {
     }
 
     // Update the configuration
-    this.configuration[configurationProperty] = value;
+    this.config[configurationProperty] = value;
 
     // Return the serializer
     return this;
@@ -65,7 +65,7 @@ class BetterJSONSerializer {
    *
    * @param plugin - The actual plugin to add.
    */
-  public static use(plugin: IPlugin): void {
+  public use(plugin: IPlugin): void {
     // Ensure the plugin is valid
     if (
       typeof plugin !== 'object' ||
@@ -79,10 +79,7 @@ class BetterJSONSerializer {
       );
     }
 
-    if (
-      this.plugins.user.has(plugin.constructorName) &&
-      !this.configuration.allowPluginsOverwrite
-    ) {
+    if (this.plugins.user.has(plugin.constructorName) && !this.config.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
       throw new Error(
         `Unable to add plugin for '${plugin.constructorName}', a plugin using this constructor name already exist and plugins override is disabled.`,
@@ -101,9 +98,9 @@ class BetterJSONSerializer {
    *
    * @returns Returns the matching plugin if it exist, or `undefined` if none has been found.
    */
-  public static plugin(
+  public plugin(
     constructorName: string,
-    allowUseOfDefaultPlugins: boolean = this.configuration.allowUseOfDefaultPlugins as boolean,
+    allowUseOfDefaultPlugins: boolean = this.config.allowUseOfDefaultPlugins as boolean,
   ): IPlugin | undefined {
     if (typeof constructorName !== 'string') {
       throw new TypeError('The constructor name must be a string.');
@@ -134,9 +131,9 @@ class BetterJSONSerializer {
    *
    * @returns Returns the serialized JSON string.
    */
-  public static stringify<C = unknown>(
+  public stringify<C = unknown>(
     source: C,
-    space: number = this.configuration.defaultIndentation as number,
+    space: number = this.config.defaultIndentation as number,
   ): string {
     // Ensure the space indentation is a positive number
     if (typeof space !== 'number' || space < 0) {
@@ -174,9 +171,9 @@ class BetterJSONSerializer {
 
           // Return the formated serialized object
           return {
-            [this.configuration.serializedObjectIdentifier as string]: {
-              [`${this.configuration.serializedObjectIdentifier}.type`]: constructorName,
-              [`${this.configuration.serializedObjectIdentifier}.value`]: serializedValue,
+            [this.config.serializedObjectIdentifier as string]: {
+              [`${this.config.serializedObjectIdentifier}.type`]: constructorName,
+              [`${this.config.serializedObjectIdentifier}.value`]: serializedValue,
             },
           };
         },
@@ -197,7 +194,7 @@ class BetterJSONSerializer {
    *
    * @returns Returns the deserialized object.
    */
-  public static parse<O = unknown>(text: string): O {
+  public parse<O = unknown>(text: string): O {
     // Ensure the JSON string is in fact, a string
     if (typeof text !== 'string') {
       throw new TypeError('The JSON text must be a string.');
@@ -212,17 +209,15 @@ class BetterJSONSerializer {
         if (
           typeof value !== 'object' ||
           value === null ||
-          !((this.configuration.serializedObjectIdentifier as string) in value) ||
+          !((this.config.serializedObjectIdentifier as string) in value) ||
           Object.keys(value).length > 1
         ) {
           return value;
         }
 
-        const serializedObject = value[this.configuration.serializedObjectIdentifier as string];
-        const constructorName =
-          serializedObject[`${this.configuration.serializedObjectIdentifier}.type`];
-        const serializedValue =
-          serializedObject[`${this.configuration.serializedObjectIdentifier}.value`];
+        const serializedObject = value[this.config.serializedObjectIdentifier as string];
+        const constructorName = serializedObject[`${this.config.serializedObjectIdentifier}.type`];
+        const serializedValue = serializedObject[`${this.config.serializedObjectIdentifier}.value`];
 
         /** The plugin that should be used */
         const matchingPlugin = this.plugin(constructorName);
