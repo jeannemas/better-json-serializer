@@ -102,6 +102,36 @@ serializer.setConfig({
 
 > A `ReferenceError` error will be thrown if you try to define a configuration property that does not exist, as the configuration is not available to the plugins.
 
+## Using the package
+
+The main use of the package is based on the interface implemented by the `JSON` object.
+
+#### Serializing an object into a string
+
+In order to serialize an object, you need to call the `.stringify` method on the serializer object.
+
+```javascript
+const serializer = new BetterJSONSerializer();
+
+serializer.stringify(myObj); // ==> Returns a serialized object as a string
+```
+
+##### Parameters
+
+| Order | Parameter | Type             | Optionnal | Default value                               | Description                                            |
+| :---- | :-------- | :--------------- | :-------- | :------------------------------------------ | :----------------------------------------------------- |
+| 1     | object    | Anything         | `false`   | None                                        | The object to serialize                                |
+| 2     | space     | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10) |
+
+##### Return
+
+| Type     | Description          |
+| :------- | :------------------- |
+| `String` | The serialized obect |
+
+> It is not yet possible to provide a reviver function (a reviver just like `JSON.stringify`) to further customize the object before serializing it.
+> However it is a planned feature for a future release.
+
 ## Extend with plugins
 
 The package come with default plugins installed for those objects:
