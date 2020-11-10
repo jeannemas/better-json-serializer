@@ -1,6 +1,6 @@
 {
   "name": "better-json-serializer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A tool that enables to use non-standard types in JSON (such as Sets, Maps, etc)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
