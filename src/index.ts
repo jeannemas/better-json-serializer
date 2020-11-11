@@ -126,7 +126,7 @@ class BetterJSONSerializer {
    */
   public getPlugin(
     constructorName: string,
-    allowUseOfDefaultPlugins: boolean = this.conf.allowUseOfDefaultPlugins as boolean,
+    allowUseOfDefaultPlugins: boolean = this.conf.allowUseOfDefaultPlugins,
   ): IPlugin | undefined {
     /** The plugin that macthes the constructor name */
     let matchingPlugin = this.plugins.user.get(constructorName);
@@ -149,10 +149,7 @@ class BetterJSONSerializer {
    *
    * @returns Returns the serialized JSON string.
    */
-  public stringify<C = unknown>(
-    source: C,
-    space: number = this.conf.defaultIndentation as number,
-  ): string {
+  public stringify(source: unknown, space: number = this.conf.defaultIndentation): string {
     /** The serialized JSON object */
     let json: string;
 
@@ -231,7 +228,7 @@ class BetterJSONSerializer {
         if (
           typeof value !== 'object' ||
           value === null ||
-          !((this.conf.serializedObjectIdentifier as string) in value) ||
+          !(this.conf.serializedObjectIdentifier in value) ||
           Object.keys(value).length > 1
         ) {
           return value;
