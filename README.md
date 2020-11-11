@@ -120,8 +120,8 @@ serializer.stringify(myObj); // ==> Returns a serialized object as a string
 
 | Order | Parameter | Type             | Optionnal | Default value                               | Description                                            |
 | :---- | :-------- | :--------------- | :-------- | :------------------------------------------ | :----------------------------------------------------- |
-| 1     | object    | Anything         | `false`   | None                                        | The object to serialize                                |
-| 2     | space     | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10) |
+| 1     | `object`  | Anything         | `false`   | None                                        | The object to serialize                                |
+| 2     | `space`   | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10) |
 
 ##### Return
 
@@ -146,7 +146,7 @@ serializer.parse(myString); // ==> Returns a deserialized object
 
 | Order | Parameter | Type     | Optionnal | Default value | Description               |
 | :---- | :-------- | :------- | :-------- | :------------ | :------------------------ |
-| 1     | text      | `String` | `false`   | None          | The string to deserialize |
+| 1     | `text`    | `String` | `false`   | None          | The string to deserialize |
 
 ##### Return
 
@@ -217,14 +217,14 @@ class Person {
   }
 
   getFullName() {
-    return this.firstName + ' ' + this.lastName;
+    return `${this.firstName}  ${this.lastName}`;
   }
 }
 
 const person = new Person('John', 'Doe');
 
 const personPlugin = {
-  constructorName: 'Person',
+  constructorName: Person.name,
   serialize: (key, value) => ({ ...value }),
   deserialize: (key, value) => Object.assign(Object.create(Person.prototype), value),
 };
