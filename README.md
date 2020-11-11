@@ -154,6 +154,31 @@ serializer.parse(myString); // ==> Returns a deserialized object
 | :------- | :---------------------- |
 | Anything | The deserialized object |
 
+#### Getting a plugin
+
+> **Warning**: this feature might be removed in a future update, use it with caution.
+
+You can manually access a plugin for a constructor name by calling the `.getPlugin` method on the serializer object.
+
+```javascript
+const serializer = new BetterJSONSerializer();
+
+serializer.getPlugin('Date', true); // ==> Returns the plugin for `Date` objects
+```
+
+##### Parameters
+
+| Order | Parameter                  | Type      | Optionnal | Default value                                     | Description                                    |
+| :---- | :------------------------- | :-------- | :-------- | :------------------------------------------------ | :--------------------------------------------- |
+| 1     | `constructorName`          | `String`  | `false`   | None                                              | The name of the constructor used by the plugin |
+| 2     | `allowUseOfDefaultPlugins` | `Boolean` | `true`    | Configuration property `allowUseOfDefaultPlugins` | Whether default plugins can be queried or not  |
+
+##### Return
+
+| Type   | Description                                                            |
+| :----- | :--------------------------------------------------------------------- |
+| Plugin | The matching plugin if it exist, or `undefined` if none has been found |
+
 ## Extend with plugins
 
 The package come with default plugins installed for those objects:
