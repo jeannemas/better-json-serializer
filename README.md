@@ -125,12 +125,34 @@ serializer.stringify(myObj); // ==> Returns a serialized object as a string
 
 ##### Return
 
-| Type     | Description          |
-| :------- | :------------------- |
-| `String` | The serialized obect |
+| Type     | Description                       |
+| :------- | :-------------------------------- |
+| `String` | The serialized object as a string |
 
 > It is not yet possible to provide a reviver function (a reviver just like `JSON.stringify`) to further customize the object before serializing it.
 > However it is a planned feature for a future release.
+
+#### Deserializing a string into an object
+
+In order to deserialize a JSON string into an object, you need to call the `.parse` method on the serializer object.
+
+```javascript
+const serializer = new BetterJSONSerializer();
+
+serializer.parse(myString); // ==> Returns a deserialized object
+```
+
+##### Parameters
+
+| Order | Parameter | Type     | Optionnal | Default value | Description               |
+| :---- | :-------- | :------- | :-------- | :------------ | :------------------------ |
+| 1     | text      | `String` | `false`   | None          | The string to deserialize |
+
+##### Return
+
+| Type     | Description             |
+| :------- | :---------------------- |
+| Anything | The deserialized object |
 
 ## Extend with plugins
 
