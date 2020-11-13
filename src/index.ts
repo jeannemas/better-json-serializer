@@ -63,15 +63,21 @@ class BetterJSONSerializer {
   }
 
   /**
-   * Retrieve the configuration properties.
+   * Retrieve the whole configuration object.
+   *
+   * @returns Return the whole configuration.
+   */
+  public getConfig(): IConfiguration;
+  /**
+   * Retrieve a configuration properties.
    *
    * @param configurationProperty - The name of the configuration property.
    *
-   * @returns Return the value of the configuration identified by `configurationProperty`,
-   *   or the whole configuration if the property is `undefined`.
+   * @returns Return the value of the configuration property identified by `configurationProperty`.
    */
+  public getConfig(configurationProperty: string): unknown;
   public getConfig(configurationProperty?: string): IConfiguration | unknown {
-    // Check is property is 'undefined'
+    // Check if property is 'undefined'
     if (configurationProperty === undefined) {
       // Return the whole configuration
       return { ...this.conf };
