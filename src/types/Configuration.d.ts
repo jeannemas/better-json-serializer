@@ -10,4 +10,7 @@ export default interface IConfiguration {
 
   /** Whether default plugins can be used by the serializer or not */
   allowUseOfDefaultPlugins: boolean;
+
+  /** Whether to throw an exception when an error occurs */
+  throwOnError: boolean;
 }

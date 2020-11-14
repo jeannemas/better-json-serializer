@@ -22,6 +22,8 @@ class BetterJSONSerializer {
     defaultIndentation: 0,
 
     allowUseOfDefaultPlugins: true,
+
+    throwOnError: true,
   };
 
   /** The list of plugins used as middlewares by the serializer */
@@ -34,24 +36,24 @@ class BetterJSONSerializer {
    *
    * @param configuration - An object specifying the properties as keys, and the values.
    */
-  public setConfig(configuration: Record<string, unknown>): void;
+  public setConfig(configuration: Record<string, unknown>): boolean;
   /**
    * Update the configuration.
    *
    * @param configurationProperty - The configuration property to update.
    * @param value - The new value of the configuration property.
    */
-  public setConfig(configurationProperty: string, value: unknown): void;
+  public setConfig(configurationProperty: string, value: unknown): boolean;
   public setConfig(
     configurationOrProperty: Record<string, unknown> | string,
     value?: unknown,
-  ): void {
+  ): boolean {
     // If the configuration is an object
     if (typeof configurationOrProperty === 'object') {
-      // Call the setConfig foreach key/value pair
-      Object.entries(configurationOrProperty).forEach(([key, val]) => this.setConfig(key, val));
+      const config = configurationOrProperty as Record<string, unknown>;
 
-      return;
+      // Call the setConfig foreach key/value pair
+      return Object.entries(config).every(([key, val]) => this.setConfig(key, val));
     }
 
     /** The configuration property */
@@ -59,18 +61,28 @@ class BetterJSONSerializer {
 
     // Ensure that the configurationProperty exist in the configuration object
     if (!(key in this.conf)) {
-      throw new ReferenceError(`Configuration property '${key}' does not exist.`);
+      if (this.conf.throwOnError) {
+        throw new ReferenceError(`Configuration property '${key}' does not exist.`);
+      } else {
+        return false;
+      }
     }
 
     // Ensure that the value of the configurationProperty is valid
     if (typeof value !== typeof this.conf[key]) {
-      throw new TypeError(
-        `Invalid type for configuration property '${key}', expected '${typeof this.conf[key]}'.`,
-      );
+      if (this.conf.throwOnError) {
+        throw new TypeError(
+          `Invalid type for configuration property '${key}', expected '${typeof this.conf[key]}'.`,
+        );
+      } else {
+        return false;
+      }
     }
 
     // Update the configuration
     this.conf[key] = value;
+
+    return true;
   }
 
   // #endregion
@@ -100,7 +112,13 @@ class BetterJSONSerializer {
 
     // Ensure that the configurationProperty exist in the configuration object
     if (!(configurationProperty in this.conf)) {
-      throw new ReferenceError(`Configuration property '${configurationProperty}' does not exist.`);
+      if (this.conf.throwOnError) {
+        throw new ReferenceError(
+          `Configuration property '${configurationProperty}' does not exist.`,
+        );
+      } else {
+        return undefined;
+      }
     }
 
     // Return the configuration property value
@@ -150,9 +168,13 @@ class BetterJSONSerializer {
 
     if (this.plugins.has(plugin.constructorName) && !this.conf.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
-      throw new Error(
-        `Unable to add plugin for '${plugin.constructorName}', a plugin using this constructor name already exist and plugins override is disabled.`,
-      );
+      if (this.conf.throwOnError) {
+        throw new Error(
+          `Unable to add plugin for '${plugin.name}', a plugin using this constructor name already exist and plugins override is disabled.`,
+        );
+      } else {
+        return;
+      }
     }
 
     this.plugins.set(plugin.constructorName, plugin);
@@ -210,9 +232,13 @@ class BetterJSONSerializer {
             // Serialize the object using the plugin
             serializedValue = matchingPlugin.serialize(key, value);
           } catch (error) {
-            throw new EvalError(
-              `Error while serializing type '${constructorName}'.\n\n${error.message}`,
-            );
+            if (this.conf.throwOnError) {
+              throw new EvalError(
+                `Error while serializing type '${constructorName}'.\n\n${error.message}`,
+              );
+            } else {
+              return undefined;
+            }
           }
 
           // Return the formated serialized object
@@ -227,7 +253,11 @@ class BetterJSONSerializer {
         space,
       );
     } catch (error) {
-      throw new EvalError(`Error while stringifying object.\n\n${error.message}`);
+      if (this.conf.throwOnError) {
+        throw new EvalError(`Error while stringifying object.\n\n${error.message}`);
+      } else {
+        return null;
+      }
     }
 
     return json;
@@ -281,7 +311,11 @@ class BetterJSONSerializer {
           }
 
           default: {
-            throw new Error(`Unsupported serialization version '${version}'.`);
+            if (this.conf.throwOnError) {
+              throw new Error(`Unsupported serialization version '${version}'.`);
+            } else {
+              return undefined;
+            }
           }
         }
 
@@ -291,16 +325,24 @@ class BetterJSONSerializer {
         try {
           deserializedValue = matchingPlugin.deserialize(key, serializedValue);
         } catch (error) {
-          throw new EvalError(
-            `Error while deserializing type '${constructorName}'.\n\n${error.message}`,
-          );
+          if (this.conf.throwOnError) {
+            throw new EvalError(
+              `Error while deserializing type '${constructorName}'.\n\n${error.message}`,
+            );
+          } else {
+            return undefined;
+          }
         }
 
         // Return the formated deserialized object
         return deserializedValue;
       });
     } catch (error) {
-      throw new EvalError(`Error while parsing object.\n\n${error.message}`);
+      if (this.conf.throwOnError) {
+        throw new EvalError(`Error while parsing object.\n\n${error.message}`);
+      } else {
+        return undefined;
+      }
     }
 
     return object as O;
