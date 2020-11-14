@@ -1,5 +1,5 @@
 import { IPlugin } from './types/Plugin';
-import DefaultConfiguration from './DefaultConfiguration';
+
 import IConfiguration from './types/Configuration';
 import { ISerializedObject } from './types/SerializedObject';
 import PluginsRepository from './types/PluginsRepository';
@@ -14,7 +14,15 @@ import defaultPluginsList from './plugins';
  */
 class BetterJSONSerializer {
   /** The config used by the serializer */
-  private conf = DefaultConfiguration();
+  private conf: IConfiguration = {
+    allowPluginsOverwrite: false,
+
+    serializedObjectIdentifier: '_@serialized-object',
+
+    defaultIndentation: 0,
+
+    allowUseOfDefaultPlugins: true,
+  };
 
   /** The list of plugins used as middlewares by the serializer */
   private plugins: PluginsRepository = new Map();
