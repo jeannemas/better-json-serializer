@@ -3,15 +3,18 @@
 A tool that enables to use non-standard types in JSON (such as Sets, Maps, etc).
 
 ```javascript
-const BetterJSONSerializer = require('better-json-serializer').default;
+import BetterJSONSerializer from 'better-json-serializer';
+import { PluginSet } from 'better-json-serializer/plugins';
 
 const serializer = new BetterJSONSerializer();
+
+serializer.use(PluginSet);
 
 const obj = {
   a: new Set([1, 2, false, 'b', null]),
 };
 
-console.log(obj.a.constructor.name); // ==> 'Set'
+console.log(obj.a instanceof Set); // ==> true
 console.log(obj.a); // ==> Set(5) { 1, 2, false, 'b', null }
 
 const str = serializer.stringify(obj);
@@ -20,7 +23,7 @@ console.log(typeof str); // ==> 'string'
 
 const secondObj = serializer.parse(str);
 
-console.log(secondObj.a.constructor.name); // ==> 'Set'
+console.log(secondObj.a instanceof Set); // ==> true
 console.log(secondObj.a); // ==> Set(5) { 1, 2, false, 'b', null }
 ```
 
@@ -36,18 +39,23 @@ $ npm install better-json-serializer
 - Support for any kind of non-standard object
 - Minimal setup required
 - Easy to implement
+- Full Typescript support
 
 ## Usage
 
 ```javascript
-// Import the class
-const BetterJSONSerializer = require('better-json-serializer').default;
+// Import the main class
+import BetterJSONSerializer from 'better-json-serializer';
+import PluginDate from 'better-json-serializer/plugins/Date';
 
 // Create an instance
 const serializer = new BetterJSONSerializer();
 
 // Configure it (if needed)
 serializer.setConfig('serializedObjectIdentifier', '_@serialized-object'); // Default value
+
+// Load the appropriate plugin
+serializer.use(PluginDate);
 
 // Start using it
 const str = serializer.stringify(new Date()); // ==> A string
@@ -79,7 +87,7 @@ console.log(serializer.getConfig());
 console.log(serializer.getConfig('allowPluginsOverwrite'));
 ```
 
-> Trying to get a configuration property that does not exist will throw a `ReferenceError` error.
+> Trying to get a configuration property that does not exist will throw a `ReferenceError`.
 
 #### Updating the configuration
 
@@ -98,9 +106,9 @@ serializer.setConfig({
 });
 ```
 
-> While configuring a property, the correct type must be used, else a `TypeError` error will be thrown.
+> A `TypeError` will be thrown while trying to configure the property with an invalid type.
 
-> A `ReferenceError` error will be thrown if you try to define a configuration property that does not exist, as the configuration is not available to the plugins.
+> A `ReferenceError` will be thrown if you try to define a configuration property that does not exist.
 
 ## Using the package
 
@@ -118,19 +126,17 @@ serializer.stringify(myObj); // ==> Returns a serialized object as a string
 
 ##### Parameters
 
-| Order | Parameter | Type             | Optionnal | Default value                               | Description                                            |
-| :---- | :-------- | :--------------- | :-------- | :------------------------------------------ | :----------------------------------------------------- |
-| 1     | `object`  | Anything         | `false`   | None                                        | The object to serialize                                |
-| 2     | `space`   | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10) |
+| Order | Parameter  | Type             | Optionnal | Default value                               | Description                                                      |
+| :---- | :--------- | :--------------- | :-------- | :------------------------------------------ | :--------------------------------------------------------------- |
+| 1     | `object`   | Anything         | `false`   |                                             | The object to serialize                                          |
+| 2     | `replacer` | `function`       | `true`    | `null`                                      | A function that alters the behavior of the serialization process |
+| 3     | `space`    | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10)           |
 
 ##### Return
 
 | Type     | Description                       |
 | :------- | :-------------------------------- |
 | `String` | The serialized object as a string |
-
-> It is not yet possible to provide a reviver function (a reviver just like `JSON.stringify`) to further customize the object before serializing it.
-> However it is a planned feature for a future release.
 
 #### Deserializing a string into an object
 
@@ -144,9 +150,10 @@ serializer.parse(myString); // ==> Returns a deserialized object
 
 ##### Parameters
 
-| Order | Parameter | Type     | Optionnal | Default value | Description               |
-| :---- | :-------- | :------- | :-------- | :------------ | :------------------------ |
-| 1     | `text`    | `String` | `false`   | None          | The string to deserialize |
+| Order | Parameter | Type       | Optionnal | Default value | Description                                                      |
+| :---- | :-------- | :--------- | :-------- | :------------ | :--------------------------------------------------------------- |
+| 1     | `text`    | `String`   | `false`   |               | The string to deserialize                                        |
+| 2     | `reviver` | `function` | `true`    | `null`        | A function that will be called on each value before returning it |
 
 ##### Return
 
@@ -154,34 +161,9 @@ serializer.parse(myString); // ==> Returns a deserialized object
 | :------- | :---------------------- |
 | Anything | The deserialized object |
 
-#### Getting a plugin
-
-> **Warning**: this feature might be removed in a future update, use it with caution.
-
-You can manually access a plugin for a constructor name by calling the `.getPlugin` method on the serializer object.
-
-```javascript
-const serializer = new BetterJSONSerializer();
-
-serializer.getPlugin('Date', true); // ==> Returns the plugin for `Date` objects
-```
-
-##### Parameters
-
-| Order | Parameter                  | Type      | Optionnal | Default value                                     | Description                                    |
-| :---- | :------------------------- | :-------- | :-------- | :------------------------------------------------ | :--------------------------------------------- |
-| 1     | `constructorName`          | `String`  | `false`   | None                                              | The name of the constructor used by the plugin |
-| 2     | `allowUseOfDefaultPlugins` | `Boolean` | `true`    | Configuration property `allowUseOfDefaultPlugins` | Whether default plugins can be queried or not  |
-
-##### Return
-
-| Type   | Description                                                            |
-| :----- | :--------------------------------------------------------------------- |
-| Plugin | The matching plugin if it exist, or `undefined` if none has been found |
-
 ## Extend with plugins
 
-The package come with default plugins installed for those objects:
+The package is shipped with default plugins for those objects, however they are not loaded by default:
 
 - `BigInt`
 - `Date`
@@ -189,27 +171,52 @@ The package come with default plugins installed for those objects:
 - `RegExp`
 - `Set`
 
+To load a default plugin, simply import it, and then load it as a normal plugin:
+
+```javascript
+// Import the main class
+import BetterJSONSerializer from 'better-json-serializer';
+
+// Import the plugin for 'Date'
+import { PluginDate } from 'better-json-serializer/plugins';
+
+// Create a serializer instance
+const serializer = new BetterJSONSerializer();
+
+// Add the plugin
+serializer.use(PluginDate);
+```
+
+You can also load all the default plugins at once:
+
+```javascript
+// Import the main class
+import BetterJSONSerializer from 'better-json-serializer';
+
+// Import all the default plugins
+import plugins from 'better-json-serializer/plugins';
+
+// Create a serializer instance
+const serializer = new BetterJSONSerializer();
+
+// Add the plugins
+serializer.use(plugins);
+```
+
 But you can always extend the package by providing your own plugin using the `.use` method on the serializer with the plugin.
-To define a plugin, simply create an object with the following properties:
+To define a plugin, simply call the `createPlugin` function that comes with the package: `createPlugin(constructorName, serializeFunction, deserializeFunction)`
 
-- `constructorName` The name of the constructor used by the plugin
-- `serialize` A function that will serialize the object (identified by the constructor name). It takes two (2) parameters:
+Both the serializer and deserializer functions accept 2 parameters:
 
-  1. `key` A string that indicate the key associated with this object
-  2. `value` The actuel object to serialize
-
-  The returned object will be considered to be standardized and will be used by the native `JSON.stringify` method.
-
-- `deserialize` A function that will deserialized the standardized object into the original one. It takes two (2) parameters:
-
-  1. `key` A string that indicate the key associated with this object
-  2. `value` The standardized object after calling the native `JSON.parse` on the JSON string
-
-  The returned object will be considered as the original one and will be returned in the final object.
+1. `key` A string that indicate the key associated with this object
+2. `value` The actuel object to serialize/deserialize
 
 #### Example
 
 ```javascript
+// Import the main class and the createPlugin function
+import BetterJSONSerializer, { createPlugin } from 'better-json-serializer';
+
 class Person {
   constructor(firstName, lastName) {
     this.firstName = firstName;
@@ -223,21 +230,22 @@ class Person {
 
 const person = new Person('John', 'Doe');
 
-const personPlugin = {
-  constructorName: Person.name,
-  serialize: (key, value) => ({ ...value }),
-  deserialize: (key, value) => Object.assign(Object.create(Person.prototype), value),
-};
+const personPlugin = createPlugin(
+  Person.name, // The name of the constructor used by the plugin
+  (key, value) => ({ ...value }), // A function that will serialize the object
+  (key, value) => Object.assign(Object.create(Person.prototype), value), // A function that will deserialize the standardized object into the original one
+);
 
 const serializer = new BetterJSONSerializer();
 
 serializer.use(personPlugin);
 
 const serializedPerson = serializer.stringify(person);
+
+console.log(typeof serializedPerson); // ==> 'string'
+
 const deserializedPerson = serializer.parse(serializedPerson);
 
+console.log(deserializedPerson instanceof Person); // ==> true
 console.log(deserializedPerson.getFullName()); // ==> 'John Doe'
 ```
-
-> It is not recommended (and so, not officially supported) to extend a plugin with more properties than the ones intended to.
-> The use of other properties can break at any moment after an update without further notice.
