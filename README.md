@@ -46,7 +46,7 @@ $ npm install better-json-serializer
 ```javascript
 // Import the main class
 import BetterJSONSerializer from 'better-json-serializer';
-import PluginDate from 'better-json-serializer/plugins/Date';
+import { PluginSet } from 'better-json-serializer/plugins';
 
 // Create an instance
 const serializer = new BetterJSONSerializer();
@@ -55,11 +55,11 @@ const serializer = new BetterJSONSerializer();
 serializer.setConfig('serializedObjectIdentifier', '_@serialized-object'); // Default value
 
 // Load the appropriate plugin
-serializer.use(PluginDate);
+serializer.use(PluginSet);
 
 // Start using it
-const str = serializer.stringify(new Date()); // ==> A string
-const obj = serializer.parse(str); // ==> A date object
+const str = serializer.stringify(new Set()); // ==> A string
+const obj = serializer.parse(str); // ==> A set object
 ```
 
 ## Configuration
@@ -166,7 +166,6 @@ serializer.parse(myString); // ==> Returns a deserialized object
 The package is shipped with default plugins for those objects, however they are not loaded by default:
 
 - `BigInt`
-- `Date`
 - `Map`
 - `RegExp`
 - `Set`
@@ -178,13 +177,13 @@ To load a default plugin, simply import it, and then load it as a normal plugin:
 import BetterJSONSerializer from 'better-json-serializer';
 
 // Import the plugin for 'Date'
-import { PluginDate } from 'better-json-serializer/plugins';
+import { PluginSet } from 'better-json-serializer/plugins';
 
 // Create a serializer instance
 const serializer = new BetterJSONSerializer();
 
 // Add the plugin
-serializer.use(PluginDate);
+serializer.use(PluginSet);
 ```
 
 You can also load all the default plugins at once:

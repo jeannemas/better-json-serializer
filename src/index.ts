@@ -1,5 +1,3 @@
-import { IPlugin } from './types/Plugin';
-
 import Plugin, { DeserializeFunction, SerializeFunction } from './Plugin';
 import IConfiguration from './types/Configuration';
 import { ISerializedObject } from './types/SerializedObject';
@@ -214,6 +212,8 @@ class BetterJSONSerializer {
                 throw new EvalError(
                   `An error occured while calling the replacer function on key='${key}' and '${val}'.`,
                 );
+              } else {
+                source = val;
               }
             }
           }
