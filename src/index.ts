@@ -1,8 +1,9 @@
 import { IPlugin } from './types/Plugin';
 import DefaultConfiguration from './DefaultConfiguration';
-import DefaultPluginsStore from './DefaultPluginsStore';
 import IConfiguration from './types/Configuration';
 import { ISerializedObject } from './types/SerializedObject';
+import PluginsRepository from './types/PluginsRepository';
+import defaultPluginsList from './plugins';
 
 /**
  * A tool that enables to use non-standard types in JSON.
@@ -16,7 +17,9 @@ class BetterJSONSerializer {
   private conf = DefaultConfiguration();
 
   /** The list of plugins used as middlewares by the serializer */
-  private plugins = DefaultPluginsStore();
+  private plugins: PluginsRepository = new Map();
+
+  // #region .setConfig()
 
   /**
    * Update the configuration.
@@ -62,6 +65,10 @@ class BetterJSONSerializer {
     this.conf[key] = value;
   }
 
+  // #endregion
+
+  // #region .getConfig()
+
   /**
    * Retrieve the whole configuration object.
    *
@@ -92,12 +99,34 @@ class BetterJSONSerializer {
     return this.conf[configurationProperty];
   }
 
+  // #endregion
+
+  // #region .use()
+
   /**
    * A function to add a plugin to the list of plugins used by the serializer.
    *
-   * @param plugin - The actual plugin to add.
+   * @param plugins - The plugin to add.
    */
-  public use(plugin: IPlugin): void {
+  public use(plugin: IPlugin): void;
+  /**
+   * A function to add plugins to the list of plugins used by the serializer.
+   *
+   * @param plugins - The array of plugins to add.
+   */
+  public use(plugins: IPlugin[]): void;
+  public use(pluginOrPlugins: IPlugin | IPlugin[]): void {
+    if (Symbol.iterator in pluginOrPlugins) {
+      const plugins = pluginOrPlugins as IPlugin[];
+
+      // Iterate through the plugins to add each of them individually
+      Array.from(plugins).forEach((plugin) => this.use(plugin));
+
+      return;
+    }
+
+    const plugin = pluginOrPlugins as IPlugin;
+
     // Ensure the plugin is valid
     if (
       typeof plugin !== 'object' ||
@@ -111,39 +140,19 @@ class BetterJSONSerializer {
       );
     }
 
-    if (this.plugins.user.has(plugin.constructorName) && !this.conf.allowPluginsOverwrite) {
+    if (this.plugins.has(plugin.constructorName) && !this.conf.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
       throw new Error(
         `Unable to add plugin for '${plugin.constructorName}', a plugin using this constructor name already exist and plugins override is disabled.`,
       );
     }
 
-    this.plugins.user.set(plugin.constructorName, plugin);
+    this.plugins.set(plugin.constructorName, plugin);
   }
 
-  /**
-   * Function to query a plugin from the constructor name.
-   *
-   * @param constructorName - The name of the constructor used by the plugin.
-   * @param allowUseOfDefaultPlugins - Whether default plugins can be queried or not.
-   *   Default to the value in the `allowUseOfDefaultPlugins` configuration.
-   *
-   * @returns Returns the matching plugin if it exist, or `undefined` if none has been found.
-   */
-  public getPlugin(
-    constructorName: string,
-    allowUseOfDefaultPlugins: boolean = this.conf.allowUseOfDefaultPlugins,
-  ): IPlugin | undefined {
-    /** The plugin that macthes the constructor name */
-    let matchingPlugin = this.plugins.user.get(constructorName);
+  // #endregion
 
-    // If no plugins has been found and default plugins can be used
-    if (!matchingPlugin && allowUseOfDefaultPlugins) {
-      matchingPlugin = this.plugins.default.get(constructorName);
-    }
-
-    return matchingPlugin;
-  }
+  // #region .stringify()
 
   /**
    * Function to serialize an object into a JSON string
@@ -179,7 +188,7 @@ class BetterJSONSerializer {
           }
 
           /** The plugin that should be used */
-          const matchingPlugin = this.getPlugin(constructorName);
+          const matchingPlugin = this.plugins.get(constructorName);
 
           // If no plugins matching this constructor has been found, return the raw value
           if (!matchingPlugin) {
@@ -216,6 +225,10 @@ class BetterJSONSerializer {
     return json;
   }
 
+  // #endregion
+
+  // #region .parse()
+
   /**
    * Function to deserialize a JSON string into an object.
    * Serialized objects are converted using the plugins as middlewares.
@@ -245,7 +258,7 @@ class BetterJSONSerializer {
         ] as ISerializedObject;
 
         /** The plugin that should be used */
-        const matchingPlugin = this.getPlugin(constructorName);
+        const matchingPlugin = this.plugins.get(constructorName);
 
         // If no plugins matching this constructor has been found, return the raw value
         if (!matchingPlugin) {
@@ -284,6 +297,9 @@ class BetterJSONSerializer {
 
     return object as O;
   }
+
+  // #endregion
 }
 
 export default BetterJSONSerializer;
+export const defaultPlugins = (): IPlugin[] => defaultPluginsList;
