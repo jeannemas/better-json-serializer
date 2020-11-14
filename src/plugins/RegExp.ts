@@ -1,4 +1,4 @@
-import { IPlugin } from '../types/Plugin';
+import Plugin from '../Plugin';
 
 type SerializedRegExp = {
   source: string;
@@ -6,18 +6,11 @@ type SerializedRegExp = {
 };
 
 /** A plugin for `RegExp` */
-const PluginRegExp: IPlugin = {
-  constructorName: 'RegExp',
-
-  /** Serialize the `RegExp` into an `Object` */
-  serialize: (_key: string, value: RegExp): SerializedRegExp => ({
+export default new Plugin(
+  'RegExp',
+  (_key: string, value: RegExp): SerializedRegExp => ({
     source: value.source.replace('\\', '\\\\'),
     flags: value.flags,
   }),
-
-  /** Deserialize the `Object` into a `RegExp` */
-  deserialize: (_key: string, value: SerializedRegExp): RegExp =>
-    new RegExp(value.source, value.flags),
-};
-
-export default PluginRegExp;
+  (_key: string, { source, flags }: SerializedRegExp): RegExp => new RegExp(source, flags),
+);

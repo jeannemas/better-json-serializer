@@ -1,14 +1,11 @@
-/**
- * An interface representing a plugin,
- * used to serialize and deserialize a non-standard object.
- *
- * @interface
- *
- * @author Mas Paul-Louis
- */
-export interface IPlugin {
+type SerializeFunction = (key: string, value: unknown) => unknown;
+type DeserializeFunction = (key: string, value: unknown) => unknown;
+
+export { SerializeFunction, DeserializeFunction };
+
+export default class Plugin {
   /** The name of the constructor that the plugin use */
-  constructorName: string;
+  public name: string;
 
   /**
    * The function that will be called on an object
@@ -19,7 +16,7 @@ export interface IPlugin {
    *
    * @returns A standardized object.
    */
-  serialize(key: string, value: unknown): unknown;
+  public serialize: SerializeFunction;
 
   /**
    * The function that will be called on the standardized object
@@ -30,5 +27,13 @@ export interface IPlugin {
    *
    * @returns The original object.
    */
-  deserialize(key: string, value: unknown): unknown;
+  public deserialize: DeserializeFunction;
+
+  public constructor(name: string, serialize: SerializeFunction, deserialize: DeserializeFunction) {
+    this.name = name;
+
+    this.serialize = serialize;
+
+    this.deserialize = deserialize;
+  }
 }

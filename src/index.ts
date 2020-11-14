@@ -1,9 +1,9 @@
 import { IPlugin } from './types/Plugin';
 
+import Plugin, { DeserializeFunction, SerializeFunction } from './Plugin';
 import IConfiguration from './types/Configuration';
 import { ISerializedObject } from './types/SerializedObject';
 import PluginsRepository from './types/PluginsRepository';
-import defaultPluginsList from './plugins';
 
 /**
  * A tool that enables to use non-standard types in JSON.
@@ -134,16 +134,16 @@ class BetterJSONSerializer {
    *
    * @param plugins - The plugin to add.
    */
-  public use(plugin: IPlugin): void;
+  public use(plugin: Plugin): void;
   /**
    * A function to add plugins to the list of plugins used by the serializer.
    *
    * @param plugins - The array of plugins to add.
    */
-  public use(plugins: IPlugin[]): void;
-  public use(pluginOrPlugins: IPlugin | IPlugin[]): void {
+  public use(plugins: Plugin[]): void;
+  public use(pluginOrPlugins: Plugin | Plugin[]): void {
     if (Symbol.iterator in pluginOrPlugins) {
-      const plugins = pluginOrPlugins as IPlugin[];
+      const plugins = pluginOrPlugins as Plugin[];
 
       // Iterate through the plugins to add each of them individually
       Array.from(plugins).forEach((plugin) => this.use(plugin));
@@ -151,22 +151,18 @@ class BetterJSONSerializer {
       return;
     }
 
-    const plugin = pluginOrPlugins as IPlugin;
+    const plugin = pluginOrPlugins as Plugin;
 
     // Ensure the plugin is valid
-    if (
-      typeof plugin !== 'object' ||
-      plugin === null ||
-      typeof plugin.constructorName !== 'string' ||
-      typeof plugin.serialize !== 'function' ||
-      typeof plugin.deserialize !== 'function'
-    ) {
-      throw new TypeError(
-        `The plugin must be an object implementing both the 'serialize' and 'deserialize' functions, and the 'constructorName' property.`,
-      );
+    if (!(plugin instanceof Plugin)) {
+      if (this.conf.throwOnError) {
+        throw new TypeError(`The plugin is invalid.`);
+      } else {
+        return;
+      }
     }
 
-    if (this.plugins.has(plugin.constructorName) && !this.conf.allowPluginsOverwrite) {
+    if (this.plugins.has(plugin.name) && !this.conf.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
       if (this.conf.throwOnError) {
         throw new Error(
@@ -177,7 +173,7 @@ class BetterJSONSerializer {
       }
     }
 
-    this.plugins.set(plugin.constructorName, plugin);
+    this.plugins.set(plugin.name, plugin);
   }
 
   // #endregion
@@ -352,4 +348,30 @@ class BetterJSONSerializer {
 }
 
 export default BetterJSONSerializer;
-export const defaultPlugins = (): IPlugin[] => defaultPluginsList;
+
+/**
+ * Create a new plugin.
+ *
+ * @param constructorName - The constructor used by the plugin.
+ * @param serialize - The serialize function.
+ * @param deserialize - The deserialize fucntion.
+ */
+export const createPlugin = (
+  constructorName: string,
+  serialize: SerializeFunction,
+  deserialize: DeserializeFunction,
+): Plugin => {
+  if (typeof constructorName !== 'string') {
+    throw new TypeError('The constructor name for the plugin must be a string.');
+  }
+
+  if (typeof serialize !== 'function') {
+    throw new TypeError('The serialize property must be a function.');
+  }
+
+  if (typeof deserialize !== 'function') {
+    throw new TypeError('The deserialize property must be a function.');
+  }
+
+  return new Plugin(constructorName, serialize, deserialize);
+};

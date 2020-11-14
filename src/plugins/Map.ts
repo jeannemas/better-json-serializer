@@ -1,18 +1,10 @@
-import { IPlugin } from '../types/Plugin';
+import Plugin from '../Plugin';
 
-type SerializedMap<K = unknown, V = unknown> = Array<[K, V]>;
+type SerializedMap = Array<[unknown, unknown]>;
 
 /** A plugin for `Map` */
-const PluginMap: IPlugin = {
-  constructorName: 'Map',
-
-  /** Serialize the `Map` into an `Array` */
-  serialize: (_key: string, value: Map<unknown, unknown>): SerializedMap<unknown, unknown> =>
-    Array.from(value),
-
-  /** Deserialize the `Array` into a `Map` */
-  deserialize: (_key: string, value: SerializedMap<unknown, unknown>): Map<unknown, unknown> =>
-    new Map(value),
-};
-
-export default PluginMap;
+export default new Plugin(
+  'Map',
+  (_key: string, value: Map<unknown, unknown>): SerializedMap => Array.from(value),
+  (_key: string, value: SerializedMap): Map<unknown, unknown> => new Map(value),
+);

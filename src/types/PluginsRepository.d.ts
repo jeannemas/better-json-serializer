@@ -1,5 +1,5 @@
-import { IPlugin } from './Plugin';
+import Plugin from '../Plugin';
 
-type PluginsRepository = Map<string, IPlugin>;
+type PluginsRepository = Map<string, Plugin>;
 
 export default PluginsRepository;
