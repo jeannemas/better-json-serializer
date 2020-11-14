@@ -184,33 +184,53 @@ class BetterJSONSerializer {
    * Function to serialize an object into a JSON string
    * using the plugins as middlewares to serialize non-standard objects.
    *
-   * @param source - The object to serialize.
+   * @param value - The object to serialize.
+   * @param replacer - The replacer function that alters the behavior of the serialization process.
    * @param space - The number of spaces to use to indent the JSON,
    *   overrides the default value from the configuration.
    *
    * @returns Returns the serialized JSON string.
    */
-  public stringify(source: unknown, space: number = this.conf.defaultIndentation): string {
+  public stringify(
+    value: unknown,
+    replacer: (key: string, value: unknown) => unknown = null,
+    space: number = this.conf.defaultIndentation,
+  ): string {
     /** The serialized JSON object */
     let json: string;
 
     try {
       json = JSON.stringify(
-        source,
-        (key, value) => {
+        value,
+        (key, val) => {
+          let source = val;
+
+          // Use the replacer function on the raw value if provided
+          if (replacer) {
+            try {
+              source = replacer.call(undefined, key, val);
+            } catch (error) {
+              if (this.conf.throwOnError) {
+                throw new EvalError(
+                  `An error occured while calling the replacer function on key='${key}' and '${val}'.`,
+                );
+              }
+            }
+          }
+
           /** The name of the constructor of `value` */
           let constructorName: string;
           // Test for special cases
-          if (value === undefined) {
+          if (source === undefined) {
             constructorName = 'undefined';
-          } else if (value === null) {
+          } else if (source === null) {
             constructorName = 'null';
-          } else if (value === Infinity) {
+          } else if (source === Infinity) {
             constructorName = 'infinity';
-          } else if (Number.isNaN(value)) {
+          } else if (Number.isNaN(source)) {
             constructorName = 'nan';
           } else {
-            constructorName = value.constructor.name;
+            constructorName = source.constructor.name;
           }
 
           /** The plugin that should be used */
@@ -218,7 +238,7 @@ class BetterJSONSerializer {
 
           // If no plugins matching this constructor has been found, return the raw value
           if (!matchingPlugin) {
-            return value;
+            return source;
           }
 
           /** The serialized value */
@@ -226,7 +246,7 @@ class BetterJSONSerializer {
 
           try {
             // Serialize the object using the plugin
-            serializedValue = matchingPlugin.serialize(key, value);
+            serializedValue = matchingPlugin.serialize(key, source);
           } catch (error) {
             if (this.conf.throwOnError) {
               throw new EvalError(
@@ -268,10 +288,14 @@ class BetterJSONSerializer {
    * Serialized objects are converted using the plugins as middlewares.
    *
    * @param text - The JSON string to parse.
+   * @param reviver - A function that will be called on each value before returning it.
    *
    * @returns Returns the deserialized object.
    */
-  public parse<O = unknown>(text: string): O {
+  public parse<O = unknown>(
+    text: string,
+    reviver: (key: string, value: unknown) => unknown = null,
+  ): O {
     /** The deserialized object */
     let object: unknown;
 
@@ -327,6 +351,19 @@ class BetterJSONSerializer {
             );
           } else {
             return undefined;
+          }
+        }
+
+        // Use the reviver function on the value if provided
+        if (reviver) {
+          try {
+            deserializedValue = reviver.call(undefined, key, deserializedValue);
+          } catch (error) {
+            if (this.conf.throwOnError) {
+              throw new EvalError(
+                `An error occured while calling the reviver function on key='${key}' and '${deserializedValue}'.`,
+              );
+            }
           }
         }
 
