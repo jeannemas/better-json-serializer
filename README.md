@@ -46,6 +46,7 @@ $ npm install better-json-serializer
 ```javascript
 // Import the main class
 import BetterJSONSerializer from 'better-json-serializer';
+// Import any additional default plugins
 import { PluginSet } from 'better-json-serializer/plugins';
 
 // Create an instance
@@ -54,7 +55,7 @@ const serializer = new BetterJSONSerializer();
 // Configure it (if needed)
 serializer.setConfig('serializedObjectIdentifier', '_@serialized-object'); // Default value
 
-// Load the appropriate plugin
+// Load the appropriate plugin(s)
 serializer.use(PluginSet);
 
 // Start using it
@@ -70,8 +71,7 @@ const obj = serializer.parse(str); // ==> A set object
 | :--------------------------- | :-------- | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `allowPluginsOverwrite`      | `Boolean` | `false`               | Whether or not plugins can be overwrite by another one specifying the same constructor name                                                      |
 | `serializedObjectIdentifier` | `String`  | `_@serialized-object` | The default key to use to identify a serialized object<br /><br />Modify with **caution** as it can possibly indentify incorrectly other objects |
-| `defaultIndentation`         | `Number`  | `2`                   | The default indentation to use to indent the JSON                                                                                                |
-| `allowUseOfDefaultPlugins`   | `Boolean` | `true`                | Whether or not the serializer can use the default plugins                                                                                        |
+| `defaultIndentation`         | `Number`  | `0`                   | The default indentation to use to indent the JSON                                                                                                |
 
 #### Getting the configuration
 
@@ -176,7 +176,7 @@ To load a default plugin, simply import it, and then load it as a normal plugin:
 // Import the main class
 import BetterJSONSerializer from 'better-json-serializer';
 
-// Import the plugin for 'Date'
+// Import the plugin for 'Set'
 import { PluginSet } from 'better-json-serializer/plugins';
 
 // Create a serializer instance
