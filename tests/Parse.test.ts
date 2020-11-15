@@ -12,12 +12,13 @@ describe('Parse tests', function () {
     serializer.use(PluginSet);
     set.add(1);
     set.add(20);
-    const stringifiedSet = serializer.stringify(set);
-    const deserializedSet = serializer.parse<Set<number>>(stringifiedSet);
+
+    const serializedSet = serializer.stringify(set);
+    const deserializedSet = serializer.parse<Set<number>>(serializedSet);
 
     // Assert
     expect(set).to.be.instanceOf(Set);
-    expect(stringifiedSet).to.be.a('string');
+    expect(serializedSet).to.be.a('string');
     expect(deserializedSet).to.be.instanceOf(Set);
     expect(Array.from(deserializedSet)).to.have.members(Array.from(set));
   });

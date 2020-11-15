@@ -1,20 +1,18 @@
 import { expect } from 'chai';
 import BetterJSONSerializer from '../src';
-import { PluginSet } from '../src/plugins';
 
 describe('Stringify tests', function () {
   it('Stringify should return a string', function () {
     // Arrange
     const serializer = new BetterJSONSerializer();
-    const set = new Set();
+    const object = { foo: 'bar' };
 
     // Act
-    serializer.use(PluginSet);
-    const stringifiedSet = serializer.stringify(set);
+    const serializedObject = serializer.stringify(object);
 
     // Assert
-    expect(set).to.be.instanceOf(Set);
-    expect(stringifiedSet).to.be.a('string');
+    expect(object).to.be.a('object');
+    expect(serializedObject).to.be.a('string');
   });
 
   it('Stringify of native objects should not be changed if no plugins modify them', function () {
