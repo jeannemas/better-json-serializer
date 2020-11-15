@@ -18,10 +18,6 @@ class BetterJSONSerializer {
     serializedObjectIdentifier: '_@serialized-object',
 
     defaultIndentation: 0,
-
-    allowUseOfDefaultPlugins: true,
-
-    throwOnError: true,
   };
 
   /** The list of plugins used as middlewares by the serializer */
@@ -34,24 +30,26 @@ class BetterJSONSerializer {
    *
    * @param configuration - An object specifying the properties as keys, and the values.
    */
-  public setConfig(configuration: Record<string, unknown>): boolean;
+  public setConfig(configuration: Record<string, unknown>): void;
   /**
    * Update the configuration.
    *
    * @param configurationProperty - The configuration property to update.
    * @param value - The new value of the configuration property.
    */
-  public setConfig(configurationProperty: string, value: unknown): boolean;
+  public setConfig(configurationProperty: string, value: unknown): void;
   public setConfig(
     configurationOrProperty: Record<string, unknown> | string,
     value?: unknown,
-  ): boolean {
+  ): void {
     // If the configuration is an object
     if (typeof configurationOrProperty === 'object') {
       const config = configurationOrProperty as Record<string, unknown>;
 
       // Call the setConfig foreach key/value pair
-      return Object.entries(config).every(([key, val]) => this.setConfig(key, val));
+      Object.entries(config).forEach(([key, val]) => this.setConfig(key, val));
+
+      return;
     }
 
     /** The configuration property */
@@ -59,28 +57,18 @@ class BetterJSONSerializer {
 
     // Ensure that the configurationProperty exist in the configuration object
     if (!(key in this.conf)) {
-      if (this.conf.throwOnError) {
-        throw new ReferenceError(`Configuration property '${key}' does not exist.`);
-      } else {
-        return false;
-      }
+      throw new ReferenceError(`Configuration property '${key}' does not exist.`);
     }
 
     // Ensure that the value of the configurationProperty is valid
     if (typeof value !== typeof this.conf[key]) {
-      if (this.conf.throwOnError) {
-        throw new TypeError(
-          `Invalid type for configuration property '${key}', expected '${typeof this.conf[key]}'.`,
-        );
-      } else {
-        return false;
-      }
+      throw new TypeError(
+        `Invalid type for configuration property '${key}', expected '${typeof this.conf[key]}'.`,
+      );
     }
 
     // Update the configuration
     this.conf[key] = value;
-
-    return true;
   }
 
   // #endregion
@@ -110,13 +98,7 @@ class BetterJSONSerializer {
 
     // Ensure that the configurationProperty exist in the configuration object
     if (!(configurationProperty in this.conf)) {
-      if (this.conf.throwOnError) {
-        throw new ReferenceError(
-          `Configuration property '${configurationProperty}' does not exist.`,
-        );
-      } else {
-        return undefined;
-      }
+      throw new ReferenceError(`Configuration property '${configurationProperty}' does not exist.`);
     }
 
     // Return the configuration property value
@@ -153,22 +135,14 @@ class BetterJSONSerializer {
 
     // Ensure the plugin is valid
     if (!(plugin instanceof Plugin)) {
-      if (this.conf.throwOnError) {
-        throw new TypeError(`The plugin is invalid.`);
-      } else {
-        return;
-      }
+      throw new TypeError(`The plugin is invalid.`);
     }
 
     if (this.plugins.has(plugin.name) && !this.conf.allowPluginsOverwrite) {
       // A plugin using this constructor name already exist and plugins override is disabled
-      if (this.conf.throwOnError) {
-        throw new Error(
-          `Unable to add plugin for '${plugin.name}', a plugin using this constructor name already exist and plugins override is disabled.`,
-        );
-      } else {
-        return;
-      }
+      throw new Error(
+        `Unable to add plugin for '${plugin.name}', a plugin using this constructor name already exist and plugins override is disabled.`,
+      );
     }
 
     this.plugins.set(plugin.name, plugin);
@@ -208,13 +182,9 @@ class BetterJSONSerializer {
             try {
               source = replacer.call(undefined, key, val);
             } catch (error) {
-              if (this.conf.throwOnError) {
-                throw new EvalError(
-                  `An error occured while calling the replacer function on key='${key}' and '${val}'.`,
-                );
-              } else {
-                source = val;
-              }
+              throw new EvalError(
+                `An error occured while calling the replacer function on key='${key}' and '${val}'.`,
+              );
             }
           }
 
@@ -248,13 +218,9 @@ class BetterJSONSerializer {
             // Serialize the object using the plugin
             serializedValue = matchingPlugin.serialize(key, source);
           } catch (error) {
-            if (this.conf.throwOnError) {
-              throw new EvalError(
-                `Error while serializing type '${constructorName}'.\n\n${error.message}`,
-              );
-            } else {
-              return undefined;
-            }
+            throw new EvalError(
+              `Error while serializing type '${constructorName}'.\n\n${error.message}`,
+            );
           }
 
           // Return the formated serialized object
@@ -269,11 +235,7 @@ class BetterJSONSerializer {
         space,
       );
     } catch (error) {
-      if (this.conf.throwOnError) {
-        throw new EvalError(`Error while stringifying object.\n\n${error.message}`);
-      } else {
-        return null;
-      }
+      throw new EvalError(`Error while stringifying object.\n\n${error.message}`);
     }
 
     return json;
@@ -331,11 +293,7 @@ class BetterJSONSerializer {
           }
 
           default: {
-            if (this.conf.throwOnError) {
-              throw new Error(`Unsupported serialization version '${version}'.`);
-            } else {
-              return undefined;
-            }
+            throw new Error(`Unsupported serialization version '${version}'.`);
           }
         }
 
@@ -345,13 +303,9 @@ class BetterJSONSerializer {
         try {
           deserializedValue = matchingPlugin.deserialize(key, serializedValue);
         } catch (error) {
-          if (this.conf.throwOnError) {
-            throw new EvalError(
-              `Error while deserializing type '${constructorName}'.\n\n${error.message}`,
-            );
-          } else {
-            return undefined;
-          }
+          throw new EvalError(
+            `Error while deserializing type '${constructorName}'.\n\n${error.message}`,
+          );
         }
 
         // Use the reviver function on the value if provided
@@ -359,11 +313,9 @@ class BetterJSONSerializer {
           try {
             deserializedValue = reviver.call(undefined, key, deserializedValue);
           } catch (error) {
-            if (this.conf.throwOnError) {
-              throw new EvalError(
-                `An error occured while calling the reviver function on key='${key}' and '${deserializedValue}'.`,
-              );
-            }
+            throw new EvalError(
+              `An error occured while calling the reviver function on key='${key}' and '${deserializedValue}'.`,
+            );
           }
         }
 
@@ -371,11 +323,7 @@ class BetterJSONSerializer {
         return deserializedValue;
       });
     } catch (error) {
-      if (this.conf.throwOnError) {
-        throw new EvalError(`Error while parsing object.\n\n${error.message}`);
-      } else {
-        return undefined;
-      }
+      throw new EvalError(`Error while parsing object.\n\n${error.message}`);
     }
 
     return object as O;
