@@ -1,4 +1,4 @@
-export default interface IConfiguration {
+export interface IConfiguration {
   /** Whether plugins can be overwritten by others specifying the same constructor name */
   allowPluginsOverwrite: boolean;
 

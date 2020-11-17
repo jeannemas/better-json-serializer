@@ -1,7 +1,7 @@
-import Plugin, { DeserializeFunction, SerializeFunction } from './Plugin';
-import IConfiguration from './types/Configuration';
+import { Plugin, DeserializeFunction, SerializeFunction } from './Plugin';
+import { IConfiguration } from './types/Configuration';
 import { ISerializedObject } from './types/SerializedObject';
-import PluginsRepository from './types/PluginsRepository';
+import { PluginsRepository } from './types/PluginsRepository';
 
 /**
  * A tool that enables to use non-standard types in JSON.

@@ -3,7 +3,7 @@ type DeserializeFunction = (key: string, value: unknown) => unknown;
 
 export { SerializeFunction, DeserializeFunction };
 
-export default class Plugin {
+export class Plugin {
   /** The name of the constructor that the plugin use */
   public name: string;
 

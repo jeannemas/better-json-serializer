@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+import { Plugin } from '../Plugin';
 
 type SerializedRegExp = {
   source: string;
@@ -6,7 +6,7 @@ type SerializedRegExp = {
 };
 
 /** A plugin for `RegExp` */
-export default new Plugin(
+export const PluginRegExp = new Plugin(
   'RegExp',
   (_key: string, value: RegExp): SerializedRegExp => ({
     source: value.source.replace('\\', '\\\\'),
