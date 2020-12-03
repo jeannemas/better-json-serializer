@@ -1,7 +1,28 @@
 import { Plugin, DeserializeFunction, SerializeFunction } from './Plugin';
-import { IConfiguration } from './types/Configuration';
-import { ISerializedObject } from './types/SerializedObject';
-import { PluginsRepository } from './types/PluginsRepository';
+
+interface IConfiguration {
+  /** Whether plugins can be overwritten by others specifying the same constructor name */
+  allowPluginsOverwrite: boolean;
+
+  /** The key used to identify a serialized object */
+  serializedObjectIdentifier: string;
+
+  /** The default indentation to use when serializing data */
+  defaultIndentation: number;
+}
+
+type PluginsRepository = Map<string, Plugin>;
+
+interface ISerializedObject {
+  /** The serialization version */
+  version: number;
+
+  /** The constructor of the non-standardized object */
+  type: string;
+
+  /** The standardized object */
+  value: unknown;
+}
 
 /**
  * A tool that enables to use non-standard types in JSON.
