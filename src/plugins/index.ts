@@ -1,8 +1,8 @@
-import { PluginSet } from './Set';
-import { PluginMap } from './Map';
 import { PluginBigInt } from './BigInt';
+import { PluginMap } from './Map';
 import { PluginRegExp } from './RegExp';
+import { PluginSet } from './Set';
+import { PluginUndefined } from './undefined';
 
-export { PluginSet, PluginMap, PluginBigInt, PluginRegExp };
-
-export default [PluginSet, PluginMap, PluginBigInt, PluginRegExp];
+export { PluginBigInt, PluginMap, PluginRegExp, PluginSet, PluginUndefined };
+export default new Set([PluginBigInt, PluginMap, PluginRegExp, PluginSet, PluginUndefined]);

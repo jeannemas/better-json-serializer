@@ -40,6 +40,7 @@ $ npm install better-json-serializer
 - Minimal setup required
 - Easy to implement
 - Full Typescript support
+- Easily extendable using custom plugins
 
 ## Usage
 
@@ -53,62 +54,56 @@ import { PluginSet } from 'better-json-serializer/plugins';
 const serializer = new BetterJSONSerializer();
 
 // Configure it (if needed)
-serializer.setConfig('serializedObjectIdentifier', '_@serialized-object'); // Default value
+serializer.config.serializedObjectIdentifier = '_@serialized-object-identifier';
 
 // Load the appropriate plugin(s)
 serializer.use(PluginSet);
 
 // Start using it
-const str = serializer.stringify(new Set()); // ==> A string
-const obj = serializer.parse(str); // ==> A set object
+const str = serializer.stringify(new Set([1, 2, false, 'b', null])); // ==> A string
+const obj = serializer.parse(str); // ==> Set(5) { 1, 2, false, 'b', null }
 ```
 
 ## Configuration
 
 #### Configuration properties
 
-| Configuration property       | Type      | Default value         | Description                                                                                                                                      |
-| :--------------------------- | :-------- | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `allowPluginsOverwrite`      | `Boolean` | `false`               | Whether or not plugins can be overwrite by another one specifying the same constructor name                                                      |
-| `serializedObjectIdentifier` | `String`  | `_@serialized-object` | The default key to use to identify a serialized object<br /><br />Modify with **caution** as it can possibly indentify incorrectly other objects |
-| `defaultIndentation`         | `Number`  | `0`                   | The default indentation to use to indent the JSON                                                                                                |
+| Configuration property       | Type     | Default value | Description                                                                                                                                      |
+| :--------------------------- | :------- | :------------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serializedObjectIdentifier` | `String` | `'@soid'`     | The default key to use to identify a serialized object<br /><br />Modify with **caution** as it can possibly indentify incorrectly other objects |
 
-#### Getting the configuration
+#### Accessing the configuration
 
-The configuration can be accessed using the `.getConfig` method on the instance of the serializer.
+The configuration can be accessed using the `.config` property on the instance of the serializer.
 
 ```javascript
 const serializer = new BetterJSONSerializer();
 
 // Retrieve the whole configuration
-console.log(serializer.getConfig());
+console.log(serializer.config);
 
 // Retrieve only a single configuration property
-console.log(serializer.getConfig('allowPluginsOverwrite'));
+console.log(serializer.config.serializedObjectIdentifier);
 ```
 
 > Trying to get a configuration property that does not exist will throw a `ReferenceError`.
 
 #### Updating the configuration
 
-Configuration properties can be updated using the `.setConfig` method on the instance of the serializer.
+Configuration properties can be updated by accessing the `.config` property
+on the instance of the serializer.
 
 ```javascript
 const serializer = new BetterJSONSerializer();
 
-// Update a single configuration property
-serializer.setConfig('allowPluginsOverwrite', true);
-
-// Update multiple configuration properties at a time
-serializer.setConfig({
-  allowPluginsOverwrite: true,
-  defaultIndentation: 2,
-});
+// Update a configuration property
+serializer.config.serializedObjectIdentifier = 'Foo bar baz';
 ```
 
 > A `TypeError` will be thrown while trying to configure the property with an invalid type.
 
-> A `ReferenceError` will be thrown if you try to define a configuration property that does not exist.
+> A `ReferenceError` will be thrown
+> if you try to define a configuration property that does not exist.
 
 ## Using the package
 
@@ -126,11 +121,11 @@ serializer.stringify(myObj); // ==> Returns a serialized object as a string
 
 ##### Parameters
 
-| Order | Parameter  | Type             | Optionnal | Default value                               | Description                                                      |
-| :---- | :--------- | :--------------- | :-------- | :------------------------------------------ | :--------------------------------------------------------------- |
-| 1     | `object`   | Anything         | `false`   |                                             | The object to serialize                                          |
-| 2     | `replacer` | `function`       | `true`    | `null`                                      | A function that alters the behavior of the serialization process |
-| 3     | `space`    | Positive integer | `true`    | Configuration property `defaultIndentation` | The nuber of spaces to use to indent the JSON (max 10)           |
+| Order | Parameter  | Type             | Optionnal | Default value | Description                                                      |
+| :---- | :--------- | :--------------- | :-------- | :------------ | :--------------------------------------------------------------- |
+| 1     | `object`   | Anything         | `false`   |               | The object to serialize                                          |
+| 2     | `replacer` | `Function`       | `true`    | `null`        | A function that alters the behavior of the serialization process |
+| 3     | `space`    | Positive integer | `true`    | `0`           | The number of spaces to use to indent the JSON (max 10)          |
 
 ##### Return
 
@@ -140,7 +135,8 @@ serializer.stringify(myObj); // ==> Returns a serialized object as a string
 
 #### Deserializing a string into an object
 
-In order to deserialize a JSON string into an object, you need to call the `.parse` method on the serializer object.
+In order to deserialize a JSON string into an object,
+you need to call the `.parse` method on the serializer object.
 
 ```javascript
 const serializer = new BetterJSONSerializer();
@@ -153,7 +149,7 @@ serializer.parse(myString); // ==> Returns a deserialized object
 | Order | Parameter | Type       | Optionnal | Default value | Description                                                      |
 | :---- | :-------- | :--------- | :-------- | :------------ | :--------------------------------------------------------------- |
 | 1     | `text`    | `String`   | `false`   |               | The string to deserialize                                        |
-| 2     | `reviver` | `function` | `true`    | `null`        | A function that will be called on each value before returning it |
+| 2     | `reviver` | `Function` | `true`    | `null`        | A function that will be called on each value before returning it |
 
 ##### Return
 
@@ -163,12 +159,16 @@ serializer.parse(myString); // ==> Returns a deserialized object
 
 ## Extend with plugins
 
-The package is shipped with default plugins for those objects, however they are not loaded by default:
+The package is shipped with default plugins for those objects,
+however they are not loaded by default:
 
 - `BigInt`
+- `Infinity`
 - `Map`
+- `NaN`
 - `RegExp`
 - `Set`
+- `undefined`
 
 To load a default plugin, simply import it, and then load it as a normal plugin:
 
@@ -202,10 +202,15 @@ const serializer = new BetterJSONSerializer();
 serializer.use(plugins);
 ```
 
-But you can always extend the package by providing your own plugin using the `.use` method on the serializer with the plugin.
-To define a plugin, simply call the `createPlugin` function that comes with the package: `createPlugin(constructorName, serializeFunction, deserializeFunction)`
+But you can always extend the package by providing your own plugin to the `.use` method on the
+serializer. To define a plugin, simply call the `createPlugin` function that comes with the package:
 
-Both the serializer and deserializer functions accept 2 parameters:
+```javascript
+createPlugin(pluginName, finderFunction, serializeFunction, deserializeFunction)
+```
+
+Both the serializer and deserializer functions accept 2 parameters that are inspired by the
+replacer/reviver functions from the `JSON` package:
 
 1. `key` A string that indicate the key associated with this object
 2. `value` The actuel object to serialize/deserialize
@@ -222,22 +227,28 @@ class Person {
     this.lastName = lastName;
   }
 
-  getFullName() {
+  get fullName() {
     return `${this.firstName}  ${this.lastName}`;
   }
 }
 
 const person = new Person('John', 'Doe');
 
-const personPlugin = createPlugin(
-  Person.name, // The name of the constructor used by the plugin
-  (key, value) => ({ ...value }), // A function that will serialize the object
-  (key, value) => Object.assign(Object.create(Person.prototype), value), // A function that will deserialize the standardized object into the original one
+const PersonPlugin = createPlugin(
+  'PersonPlugin'
+  (value) => value instanceof Person && value.constructor === Person,
+  // A function that will serialize the object
+  (key, { firstName, lastName }) => ({ firstName, lastName }),
+  // A function that will deserialize the serialized object into the original one
+  (key, { firstName, lastName }) => Object.assign(Object.create(Person.prototype), {
+    firstName,
+    lastName,
+  }),
 );
 
 const serializer = new BetterJSONSerializer();
 
-serializer.use(personPlugin);
+serializer.use(PersonPlugin);
 
 const serializedPerson = serializer.stringify(person);
 
@@ -246,5 +257,26 @@ console.log(typeof serializedPerson); // ==> 'string'
 const deserializedPerson = serializer.parse(serializedPerson);
 
 console.log(deserializedPerson instanceof Person); // ==> true
-console.log(deserializedPerson.getFullName()); // ==> 'John Doe'
+console.log(deserializedPerson.fullName); // ==> 'John Doe'
 ```
+
+## Changelog
+
+### `v3.0.0` - November 3th 2021
+
+#### Changes
+
+- Added new built-in plugins for special cases values:
+  - `Infinity`
+  - `NaN`
+  - `undefined`
+
+#### Breaking changes
+- Reworked configuration management
+  > Configuration is now managed by the `.config` property on the serializer instance.
+- Removed `version` property from serialized object.
+  > This property was already unused and was taking space on the serialized object making it
+  > heavier for nothing.
+- Removed built-in plugin for `null`, value will be inserted as native JSON's `null` value.
+- Plugins are now middlewares, deferring the roles to them to identify if a value should be
+  serialized instead of leaving the job to the serializer

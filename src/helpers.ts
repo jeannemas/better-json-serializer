@@ -1,6 +1,6 @@
 export const shouldNotThrow = (func: () => void): boolean => {
   try {
-    func();
+    func.call(undefined);
   } catch (error) {
     return false;
   }
